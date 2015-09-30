@@ -1,4 +1,4 @@
--module(wfh2_handler).
+-module(wfh2_worker_handler).
 
 -export([init/3
         , content_types_accepted/2
@@ -12,7 +12,7 @@ init(_Proto, _Req, _Opts) ->
   {upgrade, protocol, cowboy_rest}.
 
 allowed_methods(Req, State) ->
-  {[<<"GET">>, <<"PUT">>], Req, State}.
+  {[<<"GET">>, <<"POST">>], Req, State}.
 
 content_types_accepted(Req, State) ->
   {[{{<<"application">>, <<"json">>, []}, put_json}],
