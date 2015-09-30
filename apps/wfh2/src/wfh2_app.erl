@@ -16,12 +16,12 @@
 %%====================================================================
 
 start(_StartType, _StartArgs) ->
-    Dispatch =
-      cowboy_router:compile([ {'_',[{"/", wfh2_handler, []}]}]),
+    wfh2_sup:start_link(),
+    Dispatch = cowboy_router:compile([
+           {'_',
+            [{"/workers/[:worker_id]", wfh2_handler, []}]}]),
       {ok, _} = cowboy:start_http(http, 100, [{port, 8080}], 
-                                 [{env, [{dispatch, Dispatch}]}]),
-    wfh2_sup:start_link().
-
+                                 [{env, [{dispatch, Dispatch}]}]).
 
 %%--------------------------------------------------------------------
 stop(_State) ->
