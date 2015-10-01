@@ -6,8 +6,8 @@
   {applications,
    [kernel,
     stdlib,
-    jsx,
-    cowboy
+    cowboy,
+    jsx
    ]},
   {env,[]},
   {modules, []},

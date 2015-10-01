@@ -3,7 +3,9 @@
 -behaviour(supervisor).
 
 %% API functions
--export([start_link/0,create_worker/1]).
+-export([start_link/0
+         , create_worker/1
+         , worker_exists/1]).
 
 %% Supervisor callbacks
 -export([init/1]).
@@ -22,6 +24,10 @@
 %%
 %% @end
 %%--------------------------------------------------------------------
+
+worker_exists(WorkerId) ->
+  Workers = supervisor:which_children(?MODULE),
+  lists:keysearch(WorkerId, 1, Workers) =/= false.
 
 create_worker(WorkerId) ->
   Id =
@@ -87,21 +93,17 @@ create_child(Name) ->
 load_workers() ->
   case file:list_dir(?WORKERS_FOLDER) of
     {ok, FileNames} ->
-
       NonHiddenFiles = lists:filter(
                          fun (Filename) ->
                              string:sub_string(
                                Filename, 1, 1) =/= "." end,
                          FileNames),
-
       Files = lists:map(fun filename:rootname/1, lists:filter(
                 fun (Filename) ->
                     filelib:is_file(
                       filename:join(?WORKERS_FOLDER, Filename)) end,
                 NonHiddenFiles)),
-
       {ok,  Files};
     {error, Error} -> {error, Error}
   end.
-
 

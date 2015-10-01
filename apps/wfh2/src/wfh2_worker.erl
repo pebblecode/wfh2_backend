@@ -5,6 +5,7 @@
 %% API functions
 -export([start_link/1
         , create_worker/2
+        , get_worker_state/1
         , set_wfh/2
         , set_wfo/1]).
 
@@ -26,6 +27,8 @@
           , last_updated = erlang:timestamp() :: erlang:timestamp()
           , slack_id = '' :: string()}).
 
+-type worker_state() :: #state{}.
+
 -type event_type() :: name_updated | location_updated.
 
 -record(event, {
@@ -42,6 +45,22 @@
 %%%===================================================================
 %%% API functions
 %%%===================================================================
+
+%%--------------------------------------------------------------------
+%% @doc
+%% Gets a worker's state
+%%
+%% @spec get_worker_state(WorkerId :: atom()) ->
+%%              {ok, worker_state()}  | {error, Error}
+%% @end
+%%--------------------------------------------------------------------
+
+-spec(get_worker_state(WorkerId :: atom()) ->
+    {ok, worker_state()} | {error, term()}).
+
+get_worker_state(WorkerId) ->
+  Id = ensure_atom(WorkerId),
+  gen_server:call(Id, {get_worker_state}).
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -105,7 +124,8 @@ init([Id]) ->
   Email = atom_to_list(Id),
   WorkerFilePath = get_worker_file_path(?WORKERS_DIRECTORY, Email),
   case replay(WorkerFilePath, #state{}) of
-    {ok, State} -> {ok, State};
+    {ok, State} ->
+      {ok, State#state{id = Id, email = atom_to_list(Id)}};
     _ -> {ok, #state{ id = Id, email = atom_to_list(Id) }}
   end.
 
@@ -157,6 +177,9 @@ handle_call({set_wfo}, _From, State) ->
   store_and_publish_event(Event, State#state.id),
   NewState = apply_event(Event, State),
   { reply, ok, NewState };
+
+handle_call({get_worker_state}, _From, State) ->
+  {reply, {ok, State}, State};
 
 handle_call(_Request, _From, State) ->
     Reply = ok,
