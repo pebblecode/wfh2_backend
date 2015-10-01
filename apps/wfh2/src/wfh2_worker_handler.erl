@@ -44,34 +44,31 @@ get_json(Req, State) ->
 
     undefined ->
       WorkerIds = wfh2_worker_sup:get_worker_ids(),
-      WorkerStates = lists:map(fun (Wid) -> 
-                                   {ok, WorkerState} =
-                                     wfh2_worker:get_worker_state(Wid),
-                                   WorkerState
-                               end, WorkerIds),
+      WorkerStates =
+        lists:map(fun (Wid) -> 
+                      {ok, WorkerState} =
+                      wfh2_worker:get_worker_state(Wid),
+                      WorkerState
+                  end, WorkerIds),
+
       WorkerPresentations =
-        lists:foldl(fun (WS, Acc) ->
-                      NewPres = encode_status(WS),
-                      <<Acc/binary, NewPres/binary, ",">>
+        lists:foldl(fun (Ele, Acc) ->
+                        EncEle = encode_status(Ele),
+                        case Acc =:= <<>> of
+                          true ->
+                             EncEle;
+                          _ ->
+                            <<Acc/binary, $,, EncEle/binary>>
+                        end
                     end, <<>>, WorkerStates),
 
       Body = <<"[", WorkerPresentations/binary, "]">>,
       {Body, Req, State};
 
     _ ->
-      WorkerState = wfh2_worker:get_worker_state(WorkerId),
+      {ok, WorkerState} = wfh2_worker:get_worker_state(WorkerId),
       error_logger:info_msg("WorkerState: ~p~n", [WorkerState]),
-      {ok, {_, _, _Name, _, Email,
-             WorkingFrom, Info, _, _}} = WorkerState,
-      Body = jsx:encode(#{
-                         <<"email">> => list_to_binary(Email),
-                         <<"status">> => #{
-                             <<"statusType">> => atom_to_binary(WorkingFrom, utf8),
-                             <<"statusDetails">> =>
-                                case is_list(Info) of
-                                  true -> list_to_binary(Info);
-                                  false -> <<"">> end
-                              }}),
+      Body = encode_status(WorkerState),
       error_logger:info_msg("JSON: ~p~n", [Body]),
       {Body, Req, State}
     end.
