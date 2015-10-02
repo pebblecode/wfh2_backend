@@ -30,7 +30,7 @@
 -type event() :: #event{}.
 
 -define(WORKERID_FILENAME_REGEX, "[^a-zA-Z_+@.]+").
--define(WORKERS_DIRECTORY, "/Users/martinschinz/tmp/wfh2/workers").
+-define(WORKERS_DIRECTORY, wfh2_config:get_env(workers_directory)).
 
 %%%===================================================================
 %%% API functions
