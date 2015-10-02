@@ -40,29 +40,35 @@ get_json(Req, State) ->
 resource_exists(Req, State) ->
   {WorkerIdBinding, Req2} = cowboy_req:binding(worker_id, Req),
   error_logger:info_msg("Binding: ~p", [WorkerIdBinding]),
+
   case WorkerIdBinding of
+
     undefined -> {false, Req2, State};
-    _ ->
-      WorkerId = erlang:binary_to_atom(WorkerIdBinding, utf8),
-      Exists = wfh2_worker_sup:worker_exists(WorkerId),
-      {Exists, Req2, State#rest_state{worker_id = WorkerId}}
+
+    _         -> WorkerId = erlang:binary_to_atom(WorkerIdBinding, utf8),
+                 Exists = wfh2_worker_sup:worker_exists(WorkerId),
+                 {Exists, Req2, State#rest_state{worker_id = WorkerId}}
   end.
 
 put_json(Req, State) ->
+
   case State#rest_state.worker_id of
     undefined -> false;
     Id ->
       {ok, BodyRaw, Req2} = cowboy_req:body(Req),
       BodyDes = jsx:decode(BodyRaw, [return_maps, {labels, atom}]),
-      case maps:get(location, BodyDes) of
-        Location -> error_logger:info_msg("Location: ~p~n", [Location]),
-                           case Location of
-                             <<"InOffice">> -> wfh2_worker:set_wfo(Id);
-                             <<"OutOfOffice">> -> wfh2_worker:set_wfh(Id)
-                           end,
-                           {true, Req2, State};
 
-        {badkey, _}     -> {false, Req2, State}
+      case maps:get(location, BodyDes) of
+
+        {badkey, _} -> {false, Req2, State};
+
+        Location    -> error_logger:info_msg("Location: ~p~n", [Location]),
+                       case Location of
+                         <<"InOffice">>     -> wfh2_worker:set_wfo(Id);
+                         <<"OutOfOffice">>  -> Info = binary_to_list(maps:get(details, BodyDes, <<"">>)),
+                                               wfh2_worker:set_wfh(Id, Info)
+                       end,
+                       {true, Req2, State}
       end
   end.
 

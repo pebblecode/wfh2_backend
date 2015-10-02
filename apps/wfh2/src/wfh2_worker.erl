@@ -146,11 +146,15 @@ handle_call({set_name, _}, _From, State) when State#worker_state.version > 0 ->
   { reply, Reply, State };
 
 handle_call({set_name, Name}, _From, State) ->
-  Event = #event{event_type = name_updated
+
+  Event = #event{  event_type = name_updated
                  , timestamp = erlang:timestamp()
                  , payload = Name},
+
   store_and_publish_event(Event, State#worker_state.id),
+
   NewState = apply_event(Event, State),
+
   { reply, ok, NewState };
 
 handle_call({set_wfh, _Info}, _From, State) when State#worker_state.version < 1 ->
@@ -168,7 +172,7 @@ handle_call({set_wfo}, _From, State) when State#worker_state.version < 1 ->
   Reply = {error, "Worker has not been created"},
   {reply, Reply, State};
 handle_call({set_wfo}, _From, State) ->
-  Event = #event{  event_type = location_updated
+  Event = #event{ event_type = location_updated
                 , timestamp = erlang:timestamp()
                 , payload = {office}},
   store_and_publish_event(Event, State#worker_state.id),
@@ -261,20 +265,29 @@ apply_events(Events, State) ->
 -spec apply_event (Event :: event(), #worker_state{}) -> #worker_state{}.
 
 apply_event(Event, State) ->
+
   UpdatedState =
+
     case Event of
-      #event{event_type = location_updated
+      #event{  event_type = location_updated
              , timestamp = Timestamp
-             , payload ={Location, Info}} ->
-        State#worker_state{
-          working_from = Location
-          , last_updated = Timestamp
-          , info = Info};
-      #event{event_type = name_updated
+             , payload = Payload} -> case Payload of
+                                       {home, Info} -> State#worker_state{
+                                                           working_from = home
+                                                         , last_updated = Timestamp
+                                                         , info = Info};
+                                       {office}     -> State#worker_state{
+                                                           working_from = office
+                                                         , last_updated = Timestamp
+                                                         , info = ""}
+        end;
+      #event{  event_type = name_updated
              , timestamp = Timestamp
-             , payload = Name} ->
-        State#worker_state{ name = Name , last_updated = Timestamp}
+             , payload = Name}                      -> State#worker_state{
+                                                           name = Name
+                                                         , last_updated = Timestamp}
     end,
+
   UpdatedState#worker_state{version = UpdatedState#worker_state.version + 1}.
 
 publish_event(Event) -> io:format("Publish Event: ~p~n", [Event]).
@@ -294,3 +307,4 @@ ensure_atom(ListOrAtom) ->
   if is_list(ListOrAtom) -> list_to_atom(ListOrAtom);
           true -> ListOrAtom
   end.
+
