@@ -9,7 +9,7 @@
     cowboy,
     jsx
    ]},
-  {env,[]},
+  {env,[{workers_folder, "/Users/martinschinz/tmp/wfh2/workers"}]},
   {modules, []},
 
   {contributors, []},

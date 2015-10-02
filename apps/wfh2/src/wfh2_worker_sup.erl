@@ -11,7 +11,7 @@
 %% Supervisor callbacks
 -export([init/1]).
 
--define(WORKERS_FOLDER, "/Users/martinschinz/tmp/wfh2/workers").
+-define(WORKERS_FOLDER, wfh2_config:get_env(workers_folder)).
 
 %%%===================================================================
 %%% API functions
@@ -57,6 +57,8 @@ create_worker(WorkerId) ->
 %% @end
 %%--------------------------------------------------------------------
 start_link() ->
+  error_logger:info_msg("Loading workers from ~p~n", [?WORKERS_FOLDER]),
+
   {ok, Workers} = load_workers(),
   supervisor:start_link({local, ?MODULE}, ?MODULE, Workers).
 
