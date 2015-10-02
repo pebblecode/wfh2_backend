@@ -55,20 +55,34 @@ put_json(Req, State) ->
   case State#rest_state.worker_id of
     undefined -> false;
     Id ->
-      {ok, BodyRaw, Req2} = cowboy_req:body(Req),
-      BodyDes = jsx:decode(BodyRaw, [return_maps, {labels, atom}]),
+      {ActionBinding, Req2} = cowboy_req:binding(action, Req),
 
-      case maps:get(location, BodyDes) of
+      case ActionBinding of
 
-        {badkey, _} -> {false, Req2, State};
+        <<"location">> ->
+          {ok, BodyRaw, Req3} = cowboy_req:body(Req2),
+          BodyDes = jsx:decode(BodyRaw, [return_maps, {labels, atom}]),
 
-        Location    -> error_logger:info_msg("Location: ~p~n", [Location]),
-                       case Location of
-                         <<"InOffice">>     -> wfh2_worker:set_wfo(Id);
-                         <<"OutOfOffice">>  -> Info = binary_to_list(maps:get(details, BodyDes, <<"">>)),
-                                               wfh2_worker:set_wfh(Id, Info)
-                       end,
-                       {true, Req2, State}
+          case maps:get(location, BodyDes) of
+
+            {badkey, _} ->
+              {false, Req3, State};
+
+            Location    ->
+              error_logger:info_msg("Location: ~p~n", [Location]),
+              case Location of
+                <<"InOffice">>     -> wfh2_worker:set_wfo(Id);
+                <<"OutOfOffice">>  ->
+                  Info = binary_to_list(maps:get(details, BodyDes, <<"">>)),
+                  wfh2_worker:set_wfh(Id, Info)
+              end,
+
+              {true, Req3, State}
+          end;
+        _ ->
+          Body = jsx:encode(#{ error => <<"Unsupported action">> }),
+          Req3 = cowboy_req:set_resp_body(Body, Req2),
+          { false, Req3, State }
       end
   end.
 
