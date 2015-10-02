@@ -77,7 +77,8 @@ create_worker(WorkerId, Name) ->
 %%--------------------------------------------------------------------
 set_wfh(WorkerId, Info) ->
   Id = ensure_atom(WorkerId),
-  gen_server:call(Id, {set_wfh, Info}).
+  gen_server:call(Id, {set_wfh, Info}),
+  ok.
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -88,7 +89,8 @@ set_wfh(WorkerId, Info) ->
 %%--------------------------------------------------------------------
 set_wfo(WorkerId) ->
   Id = ensure_atom(WorkerId),
-  gen_server:call(Id, {set_wfo}).
+  gen_server:call(Id, {set_wfo}),
+  ok.
 
 %%--------------------------------------------------------------------
 %% @doc

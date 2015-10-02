@@ -49,5 +49,20 @@ resource_exists(Req, State) ->
   end.
 
 put_json(Req, State) ->
-  {{true, <<"/">>}, Req, State}.
+  case State#rest_state.worker_id of
+    undefined -> false;
+    Id ->
+      {ok, BodyRaw, Req2} = cowboy_req:body(Req),
+      BodyDes = jsx:decode(BodyRaw, [return_maps, {labels, atom}]),
+      case maps:get(location, BodyDes) of
+        Location -> error_logger:info_msg("Location: ~p~n", [Location]),
+                           case Location of
+                             <<"InOffice">> -> wfh2_worker:set_wfo(Id);
+                             <<"OutOfOffice">> -> wfh2_worker:set_wfh(Id)
+                           end,
+                           {true, Req2, State};
+
+        {badkey, _}     -> {false, Req2, State}
+      end
+  end.
 
