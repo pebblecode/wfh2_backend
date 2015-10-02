@@ -1,13 +1,15 @@
 -module(wfh2_worker).
 
+-include("../include/worker_state.hrl").
+
 -behaviour(gen_server).
 
 %% API functions
 -export([start_link/1
-        , create_worker/2
-        , get_worker_state/1
-        , set_wfh/2
-        , set_wfo/1]).
+         , create_worker/2
+         , get_worker_state/1
+         , set_wfh/2
+         , set_wfo/1]).
 
 %% gen_server callbacks
 -export([init/1,
@@ -16,18 +18,6 @@
          handle_info/2,
          terminate/2,
          code_change/3]).
-
--record(state, {
-          id :: atom()
-          , name = '' :: string()
-          , version = 0 :: integer()
-          , email = '' :: string()
-          , working_from = office :: home | office
-          , info = '' :: string()
-          , last_updated = erlang:timestamp() :: erlang:timestamp()
-          , slack_id = '' :: string()}).
-
--type worker_state() :: #state{}.
 
 -type event_type() :: name_updated | location_updated.
 
@@ -70,8 +60,13 @@ get_worker_state(WorkerId) ->
 %% @end
 %%--------------------------------------------------------------------
 create_worker(WorkerId, Name) ->
-  {ok, Pid} = wfh2_worker_sup:create_worker(WorkerId),
-  gen_server:call(Pid, {set_name, Name}).
+  case wfh2_worker_sup:create_worker(WorkerId) of
+    {ok, Pid} ->
+      gen_server:call(Pid, {set_name, Name}),
+      ok;
+    {error, {already_started, _}} -> {error, worker_exists}
+  end.
+
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -123,10 +118,10 @@ start_link(Id) ->
 init([Id]) ->
   Email = atom_to_list(Id),
   WorkerFilePath = get_worker_file_path(?WORKERS_DIRECTORY, Email),
-  case replay(WorkerFilePath, #state{}) of
+  case replay(WorkerFilePath, #worker_state{}) of
     {ok, State} ->
-      {ok, State#state{id = Id, email = atom_to_list(Id)}};
-    _ -> {ok, #state{ id = Id, email = atom_to_list(Id) }}
+      {ok, State#worker_state{id = Id, email = atom_to_list(Id)}};
+    _ -> {ok, #worker_state{ id = Id, email = atom_to_list(Id) }}
   end.
 
 %%--------------------------------------------------------------------
@@ -144,7 +139,7 @@ init([Id]) ->
 %% @end
 %%--------------------------------------------------------------------
 
-handle_call({set_name, _}, _From, State) when State#state.version > 0 ->
+handle_call({set_name, _}, _From, State) when State#worker_state.version > 0 ->
   Reply = {error, "Name change not implemented"},
   { reply, Reply, State };
 
@@ -152,29 +147,29 @@ handle_call({set_name, Name}, _From, State) ->
   Event = #event{event_type = name_updated
                  , timestamp = erlang:timestamp()
                  , payload = Name},
-  store_and_publish_event(Event, State#state.id),
+  store_and_publish_event(Event, State#worker_state.id),
   NewState = apply_event(Event, State),
   { reply, ok, NewState };
 
-handle_call({set_wfh, _Info}, _From, State) when State#state.version < 1 ->
+handle_call({set_wfh, _Info}, _From, State) when State#worker_state.version < 1 ->
   Reply = {error, "Worker has not been created"},
   {reply, Reply, State};
 handle_call({set_wfh, Info}, _From, State) ->
   Event = #event{  event_type = location_updated
                  , timestamp = erlang:timestamp()
                  , payload = {home, Info}},
-  store_and_publish_event(Event, State#state.id),
+  store_and_publish_event(Event, State#worker_state.id),
   NewState = apply_event(Event, State),
   { reply, ok, NewState };
 
-handle_call({set_wfo}, _From, State) when State#state.version < 1 ->
+handle_call({set_wfo}, _From, State) when State#worker_state.version < 1 ->
   Reply = {error, "Worker has not been created"},
   {reply, Reply, State};
 handle_call({set_wfo}, _From, State) ->
   Event = #event{  event_type = location_updated
                 , timestamp = erlang:timestamp()
                 , payload = {office}},
-  store_and_publish_event(Event, State#state.id),
+  store_and_publish_event(Event, State#worker_state.id),
   NewState = apply_event(Event, State),
   { reply, ok, NewState };
 
@@ -261,7 +256,7 @@ replay(WorkerFilePath, State) ->
 apply_events(Events, State) ->
   lists:foldl(fun apply_event/2, State, Events).
 
--spec apply_event (Event :: event(), #state{}) -> #state{}.
+-spec apply_event (Event :: event(), #worker_state{}) -> #worker_state{}.
 
 apply_event(Event, State) ->
   UpdatedState =
@@ -269,16 +264,16 @@ apply_event(Event, State) ->
       #event{event_type = location_updated
              , timestamp = Timestamp
              , payload ={Location, Info}} ->
-        State#state{
+        State#worker_state{
           working_from = Location
           , last_updated = Timestamp
           , info = Info};
       #event{event_type = name_updated
              , timestamp = Timestamp
              , payload = Name} ->
-        State#state{ name = Name , last_updated = Timestamp}
+        State#worker_state{ name = Name , last_updated = Timestamp}
     end,
-  UpdatedState#state{version = UpdatedState#state.version + 1}.
+  UpdatedState#worker_state{version = UpdatedState#worker_state.version + 1}.
 
 publish_event(Event) -> io:format("Publish Event: ~p~n", [Event]).
 

@@ -19,9 +19,10 @@ start(_StartType, _StartArgs) ->
     Dispatch = cowboy_router:compile([
            {'_',
             [
-             {
-              "/workers/[:worker_id/[:action]]",
-              wfh2_worker_handler, [] }
+             {"/workers/",
+              wfh2_worker_collection_handler, []},
+             { "/workers/:worker_id/[:action]",
+               wfh2_worker_handler, [] }
             ]}]),
       {ok, _} = cowboy:start_http(http, 100, [{port, 8080}],
                                  [{env, [{dispatch, Dispatch}]}]),

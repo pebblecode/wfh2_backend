@@ -1,5 +1,7 @@
 -module(wfh2_worker_handler).
 
+-include("../include/worker_state.hrl").
+
 -export([init/3
         , rest_init/2
         , content_types_accepted/2
@@ -9,16 +11,16 @@
         , get_json/2
         , put_json/2]).
 
--record(state, {worker_id :: atom()}).
+-record(rest_state, {worker_id :: atom()}).
 
 init(_Proto, _Req, _Opts) ->
   {upgrade, protocol, cowboy_rest}.
 
 rest_init(Req, _State) ->
-  {ok, Req, #state{}}.
+  {ok, Req, #rest_state{}}.
 
 allowed_methods(Req, State) ->
-  {[<<"GET">>, <<"POST">>, <<"PUT">>], Req, State}.
+  {[<<"GET">>, <<"PUT">>], Req, State}.
 
 content_types_accepted(Req, State) ->
   {[{{<<"application">>, <<"json">>, []}, put_json}],
@@ -27,61 +29,23 @@ content_types_accepted(Req, State) ->
 content_types_provided(Req, State) ->
   {[{{<<"application">>, <<"json">>, []}, get_json}], Req, State}.
 
-encode_status({_Rec, _Id, _Name, _V, Email, WorkingFrom, Info, _, _}) ->
-  jsx:encode(#{
-    <<"email">> => list_to_binary(Email),
-    <<"status">> => #{
-        <<"statusType">> => atom_to_binary(WorkingFrom, utf8),
-        <<"statusDetails">> =>
-        case is_list(Info) of
-          true -> list_to_binary(Info);
-          false -> <<"">> end
-       }}).
-
 get_json(Req, State) ->
-  WorkerId = State#state.worker_id,
-  case WorkerId of
-
-    undefined ->
-      WorkerIds = wfh2_worker_sup:get_worker_ids(),
-      WorkerStates =
-        lists:map(fun (Wid) -> 
-                      {ok, WorkerState} =
-                      wfh2_worker:get_worker_state(Wid),
-                      WorkerState
-                  end, WorkerIds),
-
-      WorkerPresentations =
-        lists:foldl(fun (Ele, Acc) ->
-                        EncEle = encode_status(Ele),
-                        case Acc =:= <<>> of
-                          true ->
-                             EncEle;
-                          _ ->
-                            <<Acc/binary, $,, EncEle/binary>>
-                        end
-                    end, <<>>, WorkerStates),
-
-      Body = <<"[", WorkerPresentations/binary, "]">>,
-      {Body, Req, State};
-
-    _ ->
-      {ok, WorkerState} = wfh2_worker:get_worker_state(WorkerId),
-      error_logger:info_msg("WorkerState: ~p~n", [WorkerState]),
-      Body = encode_status(WorkerState),
-      error_logger:info_msg("JSON: ~p~n", [Body]),
-      {Body, Req, State}
-    end.
+  WorkerId = State#rest_state.worker_id,
+  {ok, WorkerState} = wfh2_worker:get_worker_state(WorkerId),
+  error_logger:info_msg("WorkerState: ~p~n", [WorkerState]),
+  Body = wfh2_serialisation:encode_status(WorkerState),
+  error_logger:info_msg("JSON: ~p~n", [Body]),
+  {Body, Req, State}.
 
 resource_exists(Req, State) ->
   {WorkerIdBinding, Req2} = cowboy_req:binding(worker_id, Req),
   error_logger:info_msg("Binding: ~p", [WorkerIdBinding]),
   case WorkerIdBinding of
-    undefined -> {true, Req2, State};
+    undefined -> {false, Req2, State};
     _ ->
       WorkerId = erlang:binary_to_atom(WorkerIdBinding, utf8),
       Exists = wfh2_worker_sup:worker_exists(WorkerId),
-      {Exists, Req2, State#state{worker_id = WorkerId}}
+      {Exists, Req2, State#rest_state{worker_id = WorkerId}}
   end.
 
 put_json(Req, State) ->
