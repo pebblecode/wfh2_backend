@@ -269,23 +269,29 @@ apply_event(Event, State) ->
   UpdatedState =
 
     case Event of
-      #event{  event_type = location_updated
-             , timestamp = Timestamp
-             , payload = Payload} -> case Payload of
-                                       {home, Info} -> State#worker_state{
-                                                           working_from = home
-                                                         , last_updated = Timestamp
-                                                         , info = Info};
-                                       {office}     -> State#worker_state{
-                                                           working_from = office
-                                                         , last_updated = Timestamp
-                                                         , info = ""}
+
+      #event{
+         event_type = location_updated
+         , timestamp = Timestamp
+         , payload = Payload} ->
+
+        case Payload of
+          {home, Info} -> State#worker_state{
+                            working_from = home
+                            , last_updated = Timestamp
+                            , info = Info};
+          {office}     -> State#worker_state{
+                            working_from = office
+                            , last_updated = Timestamp
+                            , info = ""}
         end;
-      #event{  event_type = name_updated
-             , timestamp = Timestamp
-             , payload = Name}                      -> State#worker_state{
-                                                           name = Name
-                                                         , last_updated = Timestamp}
+
+      #event{
+         event_type = name_updated
+         , timestamp = Timestamp
+         , payload = Name} -> State#worker_state{
+                                name = Name
+                                , last_updated = Timestamp}
     end,
 
   UpdatedState#worker_state{version = UpdatedState#worker_state.version + 1}.

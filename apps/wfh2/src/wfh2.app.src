@@ -9,7 +9,7 @@
     cowboy,
     jsx
    ]},
-  {env,[{workers_folder, "/Users/martinschinz/tmp/wfh2/workers"},
+  {env,[{workers_directory, "/Users/martinschinz/tmp/wfh2/workers"},
         {cowboy_port, 8181}]},
   {modules, []},
 

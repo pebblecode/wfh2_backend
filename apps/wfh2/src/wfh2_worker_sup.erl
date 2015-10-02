@@ -11,7 +11,7 @@
 %% Supervisor callbacks
 -export([init/1]).
 
--define(WORKERS_FOLDER, wfh2_config:get_env(workers_folder)).
+-define(WORKERS_DIRECTORY, wfh2_config:get_env(workers_directory)).
 
 %%%===================================================================
 %%% API functions
@@ -57,7 +57,7 @@ create_worker(WorkerId) ->
 %% @end
 %%--------------------------------------------------------------------
 start_link() ->
-  error_logger:info_msg("Loading workers from ~p~n", [?WORKERS_FOLDER]),
+  error_logger:info_msg("Loading workers from ~p~n", [?WORKERS_DIRECTORY]),
 
   {ok, Workers} = load_workers(),
   supervisor:start_link({local, ?MODULE}, ?MODULE, Workers).
@@ -99,7 +99,7 @@ create_child(Name) ->
      , modules => [wfh2_worker]}.
 
 load_workers() ->
-  case file:list_dir(?WORKERS_FOLDER) of
+  case file:list_dir(?WORKERS_DIRECTORY) of
     {ok, FileNames} ->
       NonHiddenFiles = lists:filter(
                          fun (Filename) ->
@@ -109,7 +109,7 @@ load_workers() ->
       Files = lists:map(fun filename:rootname/1, lists:filter(
                 fun (Filename) ->
                     filelib:is_file(
-                      filename:join(?WORKERS_FOLDER, Filename)) end,
+                      filename:join(?WORKERS_DIRECTORY, Filename)) end,
                 NonHiddenFiles)),
       {ok,  Files};
     {error, Error} -> {error, Error}
