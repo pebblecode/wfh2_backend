@@ -1,5 +1,6 @@
 sudo: false
 language: erlang
+before_script: ./rebar3 update
+script: ./rebar3 as prod compile
 otp_release:
   - 18.0
-
