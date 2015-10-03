@@ -61,21 +61,25 @@ put_json(Req, State) ->
 
         <<"location">> ->
           {ok, BodyRaw, Req3} = cowboy_req:body(Req2),
+
           try jsx:decode(BodyRaw, [return_maps, {labels, atom}]) of
-            BodyDes -> try maps:get(location, BodyDes) of
-                         Location -> error_logger:info_msg("Location: ~p~n", [Location]),
-                                     case Location of
-                                       <<"InOffice">>     -> wfh2_worker:set_wfo(Id);
-                                       <<"OutOfOffice">>  ->
-                                         Info = binary_to_list(maps:get(details, BodyDes, <<"">>)),
-                                         wfh2_worker:set_wfh(Id, Info)
-                                     end,
-                                     {true, Req3, State}
-                       catch
-                         error:{badkey, location } -> Body = jsx:encode(#{error => <<"location field missing">>}),
-                                         Req4 = cowboy_req:set_resp_body(Body, Req3),
-                                         {false, Req4, State}
-                       end
+            BodyDes ->
+              try maps:get(location, BodyDes) of
+                Location -> error_logger:info_msg("Location: ~p~n", [Location]),
+                            Body = case Location of
+                                     <<"InOffice">>     -> wfh2_worker:set_wfo(Id),
+                                                           jsx:encode(#{ok => <<"in the office">>});
+                                     <<"OutOfOffice">>  -> Info = binary_to_list(maps:get(details, BodyDes, <<"">>)),
+                                                           wfh2_worker:set_wfh(Id, Info),
+                                                           jsx:encode(#{ok => <<"home">>})
+                                   end,
+                            Req4 = cowboy_req:set_resp_body(Body, Req3),
+                            {true, Req4, State}
+              catch
+                error:{badkey, location } -> Body = jsx:encode(#{error => <<"location field missing">>}),
+                                             Req4 = cowboy_req:set_resp_body(Body, Req3),
+                                             {false, Req4, State}
+              end
           catch
             error:badarg -> Body = jsx:encode(#{error => <<"request body could not be read">>}),
                             Req4 = cowboy_req:set_resp_body(Body, Req3),
