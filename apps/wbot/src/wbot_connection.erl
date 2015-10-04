@@ -1,4 +1,4 @@
--module('sscraper_connection').
+-module('wbot_connection').
 
 -behaviour(websocket_client).
 
@@ -13,7 +13,7 @@
         ]).
 
 start_link() ->
-  Token = sscraper_config:get_env(slackbot_token),
+  Token = wbot_config:get_env(slackbot_token),
   SlackUri = "https://slack.com/api/rtm.start",
   RequestBody = "token=" ++ Token ++ "&simple_latest&no_unreads",
   ContentType =  "application/x-www-form-urlencoded",

@@ -1,4 +1,4 @@
--module(sscraper_config).
+-module(wbot_config).
 
 -export([get_env/1]).
 

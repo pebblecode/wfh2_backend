@@ -1,9 +1,9 @@
 %%%-------------------------------------------------------------------
-%% @doc sscraper top level supervisor.
+%% @doc wbot top level supervisor.
 %% @end
 %%%-------------------------------------------------------------------
 
--module('sscraper_sup').
+-module('wbot_sup').
 
 -behaviour(supervisor).
 
@@ -29,9 +29,9 @@ start_link() ->
 %% Child :: {Id,StartFunc,Restart,Shutdown,Type,Modules}
 init([]) ->
     {ok, { {one_for_all, 0, 1},
-           [{sscraper_connection,
-             {sscraper_connection, start_link, []},
-             permanent, 5000, worker, [sscraper_connection]}]} }.
+           [{wbot_connection,
+             {wbot_connection, start_link, []},
+             permanent, 5000, worker, [wbot_connection]}]} }.
 
 %%====================================================================
 %% Internal functions
