@@ -21,15 +21,20 @@ rest_init(Req, [Authtoken]) ->
   {ok, Req, #state{auth_token = Authtoken}}.
 
 handle_form_post(Req, State) ->
-  try maps:get(<<"command">>, State) of
-    ?WFOO_COMMAND ->
-      SlackId = maps:get(<<"user_id">>, State),
-      WorkerId = sprof_cache:get_email_for(SlackId),
-      error_logger:info_msg("Id for worker: ~p~n", [WorkerId]),
-      {true, Req, State};
-    ?WFO_COMMAND  -> {true, Req, State}
-  catch
-    {badkey, _}  -> {false, Req, State}
+  case State of
+    #{ <<"user_id">> := SlackId, <<"command">> := Command } ->
+      try sprof_cache:get_email_for(SlackId) of
+        {ok, WorkerId} ->
+          error_logger:info_msg("Id for worker: ~p~n", [WorkerId]),
+          case  Command of
+            ?WFOO_COMMAND ->
+              {true, Req, State};
+            ?WFO_COMMAND  -> {true, Req, State}
+          end
+      catch
+        error:_ -> {false, Req, State} %userid not found
+      end;
+  _ -> {false, Req, State}
   end.
 
 allowed_methods(Req, State) ->
@@ -46,7 +51,7 @@ is_authorized(Req, State) ->
                true -> {true, Req2, BodyKeyValues};
                false -> { false, Req2, State }
              end
-   
+
   catch
     {badkey, _} ->
       {{false,<<"Payload field=\"token\"">>}, Req2, State}

@@ -37,7 +37,7 @@ get_profiles() ->
 get_email_for(Id) ->
   {ok, Profiles} = get_profiles(),
   #{ profile := #{email := Email } } = maps:get(Id, Profiles),
-  Email.
+  {ok, Email}.
 
 
 %%%===================================================================
