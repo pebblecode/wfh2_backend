@@ -1,0 +1,21 @@
+{application, 'sscraper',
+ [{description, "An OTP application"},
+  {vsn, "0.1.0"},
+  {registered, []},
+  {mod, {'sscraper_app', []}},
+  {applications,
+   [kernel,
+    stdlib,
+    inets,
+    crypto,
+    ssl,
+    jsx,
+    websocket_client
+   ]},
+  {env,[{slackbot_token,"xoxb-11845103506-UL6jSZsjsYY2xZ9hNQV6nSCN" }]},
+  {modules, []},
+
+  {contributors, []},
+  {licenses, []},
+  {links, []}
+ ]}.

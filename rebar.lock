@@ -1,4 +1,5 @@
 [{<<"cowboy">>,{pkg,<<"cowboy">>,<<"1.0.3">>},0},
  {<<"cowlib">>,{pkg,<<"cowlib">>,<<"1.0.1">>},1},
  {<<"jsx">>,{pkg,<<"jsx">>,<<"2.7.2">>},0},
- {<<"ranch">>,{pkg,<<"ranch">>,<<"1.1.0">>},1}].
+ {<<"ranch">>,{pkg,<<"ranch">>,<<"1.1.0">>},1},
+ {<<"websocket_client">>,{pkg,<<"websocket_client">>,<<"1.1.0">>},0}].
