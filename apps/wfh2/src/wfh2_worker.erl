@@ -6,7 +6,7 @@
 
 %% API functions
 -export([start_link/1
-         , create_worker/2
+         , ensure_worker/1
          , get_worker_state/1
          , set_wfh/2
          , set_wfo/1]).
@@ -59,12 +59,10 @@ get_worker_state(WorkerId) ->
 %% @spec create_worker(WorkerId :: atom(), Name :: string()) -> ok | {error, Error}
 %% @end
 %%--------------------------------------------------------------------
-create_worker(WorkerId, Name) ->
+ensure_worker(WorkerId) ->
   case wfh2_worker_sup:create_worker(WorkerId) of
-    {ok, Pid} ->
-      gen_server:call(Pid, {set_name, Name}),
-      ok;
-    {error, {already_started, _}} -> {error, worker_exists}
+    {ok, _Pid} -> ok;
+    {error, {already_started, _}} -> ok
   end.
 
 
@@ -122,8 +120,8 @@ init([Id]) ->
   WorkerFilePath = get_worker_file_path(?WORKERS_DIRECTORY, Email),
   case replay(WorkerFilePath, #worker_state{}) of
     {ok, State} ->
-      {ok, State#worker_state{id = Id, email = atom_to_list(Id)}};
-    _ -> {ok, #worker_state{ id = Id, email = atom_to_list(Id) }}
+      {ok, State#worker_state{id = Id}};
+    _ -> {ok, #worker_state{ id = Id}}
   end.
 
 %%--------------------------------------------------------------------
@@ -140,22 +138,6 @@ init([Id]) ->
 %%                                   {stop, Reason, State}
 %% @end
 %%--------------------------------------------------------------------
-
-handle_call({set_name, _}, _From, State) when State#worker_state.version > 0 ->
-  Reply = {error, "Name change not implemented"},
-  { reply, Reply, State };
-
-handle_call({set_name, Name}, _From, State) ->
-
-  Event = #event{  event_type = name_updated
-                 , timestamp = erlang:timestamp()
-                 , payload = Name},
-
-  store_and_publish_event(Event, State#worker_state.id),
-
-  NewState = apply_event(Event, State),
-
-  { reply, ok, NewState };
 
 handle_call({set_wfh, _Info}, _From, State) when State#worker_state.version < 1 ->
   Reply = {error, "Worker has not been created"},
@@ -284,14 +266,7 @@ apply_event(Event, State) ->
                             working_from = office
                             , last_updated = Timestamp
                             , info = ""}
-        end;
-
-      #event{
-         event_type = name_updated
-         , timestamp = Timestamp
-         , payload = Name} -> State#worker_state{
-                                name = Name
-                                , last_updated = Timestamp}
+        end
     end,
 
   UpdatedState#worker_state{version = UpdatedState#worker_state.version + 1}.

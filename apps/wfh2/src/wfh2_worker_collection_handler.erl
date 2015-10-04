@@ -3,7 +3,6 @@
 -export([init/3
         , allowed_methods/2
         , content_types_provided/2
-        , content_types_accepted/2
         , resource_exists/2
         , get_json/2
         , post_json/2]).
@@ -12,25 +11,13 @@ init(_Proto, _Req, _Opts) ->
   {upgrade, protocol, cowboy_rest}.
 
 allowed_methods(Req, State) ->
-  {[<<"GET">>, <<"POST">>], Req, State}.
+  {[<<"GET">>], Req, State}.
 
 content_types_provided(Req, State) ->
   {[{{<<"application">>, <<"json">>, []}, get_json}], Req, State}.
 
-content_types_accepted(Req, State) ->
-  {[{{<<"application">>, <<"json">>, []}, post_json}], Req, State}.
-
 resource_exists(Req, State) ->
-  case cowboy_req:method(Req) of
-    {<<"GET">>, Req2} -> {true, Req2, State};
-    {<<"POST">>, Req2} ->
-      {ok, BodyRaw, Req3} = cowboy_req:body(Req2),
-      #{id := IdRaw, name := Name} = jsx:decode(BodyRaw, [return_maps, {labels, atom}]),
-      Id = binary_to_atom(IdRaw, utf8),
-      Exists = wfh2_worker_sup:worker_exists(Id),
-      State2 = #{id => Id, name => binary_to_list(Name)},
-      {Exists, Req3, State2}
-  end.
+  {true, Req, State}.
 
 get_json(Req, State) ->
   WorkerIds = wfh2_worker_sup:get_worker_ids(),

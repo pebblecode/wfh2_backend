@@ -4,7 +4,8 @@
 
 %% API functions
 -export([start_link/1
-        , get_profiles/0]).
+        , get_profiles/0
+        , get_email_for/1]).
 
 %% gen_server callbacks
 -export([init/1,
@@ -32,6 +33,12 @@ start_link(PollInterval) ->
 
 get_profiles() ->
   gen_server:call(?MODULE, get_profiles).
+
+get_email_for(Id) ->
+  {ok, Profiles} = get_profiles(),
+  #{ profile := #{email := Email } } = maps:get(Id, Profiles),
+  Email.
+
 
 %%%===================================================================
 %%% gen_server callbacks

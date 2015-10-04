@@ -18,12 +18,12 @@
 start(_StartType, _StartArgs) ->
   Port = wfh2_config:get_env(cowboy_port),
   error_logger:info_msg("Starting cowboy web server on port: ~p~.n", [Port]),
+  Authtoken = wfh2_config:get_env(slack_auth_token),
   Dispatch = cowboy_router:compile(
                [{'_',
-                 [{"/workers/",
-                   wfh2_worker_collection_handler, []},
-                  { "/workers/:worker_id/[:action]",
-                    wfh2_worker_handler, [] }
+                 [{"/workers/", wfh2_worker_collection_handler, []},
+                  {"/workers/slack", wfh2_worker_slack_handler, [Authtoken]},
+                  { "/workers/:worker_id/[:action]", wfh2_worker_handler, []}
                  ]}]),
 
   {ok, _} = cowboy:start_http(http, 100, [{port, Port}],

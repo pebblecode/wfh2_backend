@@ -12,7 +12,8 @@
     wbot
    ]},
   {env,[{workers_directory, "/Users/martinschinz/tmp/wfh2/workers"},
-        {cowboy_port, 8181}]},
+        {cowboy_port, 8181},
+        {slack_auth_token, <<"x8VjdqhWwo5wZE89wdNKazXH">>}]},
   {modules, []},
 
   {contributors, []},
