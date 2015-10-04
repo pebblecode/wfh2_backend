@@ -76,12 +76,16 @@ put_json(Req, State) ->
                             Req4 = cowboy_req:set_resp_body(Body, Req3),
                             {true, Req4, State}
               catch
-                error:{badkey, location } -> Body = jsx:encode(#{error => <<"location field missing">>}),
+                error:{badkey, location } -> Body =
+                                             jsx:encode
+                                             (#{error => <<"location field missing">>}),
                                              Req4 = cowboy_req:set_resp_body(Body, Req3),
                                              {false, Req4, State}
               end
           catch
-            error:badarg -> Body = jsx:encode(#{error => <<"request body could not be read">>}),
+            error:badarg -> Body =
+                            jsx:encode
+                            (#{error => <<"request body could not be read">>}),
                             Req4 = cowboy_req:set_resp_body(Body, Req3),
                             {false, Req4, State}
           end;

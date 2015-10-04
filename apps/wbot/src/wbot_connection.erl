@@ -22,7 +22,6 @@ start_link() ->
   Req = {SlackUri, Headers, ContentType, RequestBody},
   error_logger:info_msg("making Request: ~p~nWith HttpOpts: ~p~nAnd Opts:~p~nTo slack api",[Req, "", Opts]),
   {ok, {{_, 200, _}, _, Body}} = httpc:request(post, Req, [], Opts),
-  error_logger:info_msg("Received response from slack api: ~p~n", [Body]),
   WSUrl = binary_to_list(maps:get(url, jsx:decode(Body, [return_maps, {labels, atom}]))),
   {ok, Pid} = websocket_client:start_link(WSUrl, ?MODULE, []),
   erlang:register(?MODULE, Pid),

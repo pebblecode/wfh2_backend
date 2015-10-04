@@ -28,7 +28,10 @@ start_link() ->
 
 %% Child :: {Id,StartFunc,Restart,Shutdown,Type,Modules}
 init([]) ->
-    {ok, { {one_for_all, 0, 1}, []} }.
+  PollInterval = sprof_config:get_env(poll_interval),
+    {ok, {{one_for_all, 1, 5},
+           [{sprof_cache, {sprof_cache, start_link, [PollInterval]},
+            permanent, 5000, worker, [sprof_cache, sprof_client]}]} }.
 
 %%====================================================================
 %% Internal functions

@@ -6,12 +6,15 @@
   {applications,
    [kernel,
     stdlib,
-    inets
+    inets,
+    jsx
    ]},
-  {env,[{slackbot_token,"xoxb-11845103506-UL6jSZsjsYY2xZ9hNQV6nSCN" }]},
+  {env,[{slackbot_token,"xoxb-11845103506-UL6jSZsjsYY2xZ9hNQV6nSCN" },
+        {poll_interval, 120000}]},
   {modules, []},
 
   {contributors, []},
   {licenses, []},
   {links, []}
  ]}.
+
