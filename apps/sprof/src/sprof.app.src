@@ -1,0 +1,17 @@
+{application, 'sprof',
+ [{description, "An OTP application"},
+  {vsn, "0.1.0"},
+  {registered, []},
+  {mod, {'sprof_app', []}},
+  {applications,
+   [kernel,
+    stdlib,
+    inets
+   ]},
+  {env,[{slackbot_token,"xoxb-11845103506-UL6jSZsjsYY2xZ9hNQV6nSCN" }]},
+  {modules, []},
+
+  {contributors, []},
+  {licenses, []},
+  {links, []}
+ ]}.
