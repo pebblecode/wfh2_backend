@@ -4,11 +4,11 @@ An OTP application
 
 ## Build
 
-    $ rebar3 compile
+    $ ./rebar3 compile
 
 ## Start shell
 
-	$ rebar3 shell --config test.config (see below)
+	$ ./rebar3 shell --config test.config (see below)
 
 ## Configuration
 
