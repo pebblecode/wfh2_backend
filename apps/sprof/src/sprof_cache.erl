@@ -5,7 +5,8 @@
 %% API functions
 -export([start_link/1
         , get_profiles/0
-        , get_email_for/1]).
+        , get_email_for/1
+        , get_emails/0]).
 
 %% gen_server callbacks
 -export([init/1,
@@ -36,8 +37,17 @@ get_profiles() ->
 
 get_email_for(Id) ->
   {ok, Profiles} = get_profiles(),
-  #{ profile := #{email := Email } } = maps:get(Id, Profiles),
+  Email = get_email_for(Id, Profiles),
   {ok, Email}.
+
+get_email_for(Id, Profiles) ->
+  #{ profile := #{email := Email } } = maps:get(Id, Profiles),
+  Email.
+
+get_emails() ->
+  {ok, Profiles} = get_profiles(),
+  lists:map(fun ({_K, Px}) -> #{ profile := #{ email := Email}} = Px, binary_to_list(Email) end, maps:to_list(Profiles)).
+
 
 
 %%%===================================================================

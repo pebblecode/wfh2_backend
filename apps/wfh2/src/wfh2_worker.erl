@@ -8,6 +8,7 @@
 -export([start_link/1
          , ensure_worker/1
          , get_worker_state/1
+         , get_worker_states/0
          , set_wfh/2
          , set_wfo/1]).
 
@@ -52,6 +53,14 @@ get_worker_state(WorkerId) ->
   Id = ensure_atom(WorkerId),
   gen_server:call(Id, {get_worker_state}).
 
+get_worker_states() ->
+  WorkerIds = wfh2_worker_sup:get_worker_ids(),
+  lists:map(fun (Wid) ->
+                {ok, WorkerState} =
+                wfh2_worker:get_worker_state(Wid),
+                WorkerState
+            end, WorkerIds).
+
 %%--------------------------------------------------------------------
 %% @doc
 %% Initialises a worker
@@ -75,6 +84,7 @@ ensure_worker(WorkerId) ->
 %%--------------------------------------------------------------------
 set_wfh(WorkerId, Info) ->
   Id = ensure_atom(WorkerId),
+  ensure_worker(Id),
   gen_server:call(Id, {set_wfh, Info}),
   ok.
 
@@ -87,6 +97,7 @@ set_wfh(WorkerId, Info) ->
 %%--------------------------------------------------------------------
 set_wfo(WorkerId) ->
   Id = ensure_atom(WorkerId),
+  ensure_worker(Id),
   gen_server:call(Id, {set_wfo}),
   ok.
 
@@ -139,9 +150,6 @@ init([Id]) ->
 %% @end
 %%--------------------------------------------------------------------
 
-handle_call({set_wfh, _Info}, _From, State) when State#worker_state.version < 1 ->
-  Reply = {error, "Worker has not been created"},
-  {reply, Reply, State};
 handle_call({set_wfh, Info}, _From, State) ->
   Event = #event{  event_type = location_updated
                  , timestamp = erlang:timestamp()
@@ -150,9 +158,6 @@ handle_call({set_wfh, Info}, _From, State) ->
   NewState = apply_event(Event, State),
   { reply, ok, NewState };
 
-handle_call({set_wfo}, _From, State) when State#worker_state.version < 1 ->
-  Reply = {error, "Worker has not been created"},
-  {reply, Reply, State};
 handle_call({set_wfo}, _From, State) ->
   Event = #event{ event_type = location_updated
                 , timestamp = erlang:timestamp()

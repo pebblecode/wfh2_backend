@@ -57,8 +57,6 @@ create_worker(WorkerId) ->
 %% @end
 %%--------------------------------------------------------------------
 start_link() ->
-  error_logger:info_msg("Loading workers from ~p~n", [?WORKERS_DIRECTORY]),
-
   {ok, Workers} = load_workers(),
   supervisor:start_link({local, ?MODULE}, ?MODULE, Workers).
 
@@ -93,25 +91,12 @@ create_child(Name) ->
   Id = list_to_atom(Name),
   #{ id =>  Id
      , start =>  {wfh2_worker, start_link, [Id]}
-     , restaret => permanent
+     , restart => permanent
      , shutdown => 5000
      , type => worker
      , modules => [wfh2_worker]}.
 
 load_workers() ->
-  case file:list_dir(?WORKERS_DIRECTORY) of
-    {ok, FileNames} ->
-      NonHiddenFiles = lists:filter(
-                         fun (Filename) ->
-                             string:sub_string(
-                               Filename, 1, 1) =/= "." end,
-                         FileNames),
-      Files = lists:map(fun filename:rootname/1, lists:filter(
-                fun (Filename) ->
-                    filelib:is_file(
-                      filename:join(?WORKERS_DIRECTORY, Filename)) end,
-                NonHiddenFiles)),
-      {ok,  Files};
-    {error, Error} -> {error, Error}
-  end.
+  Emails = sprof_cache:get_emails(),
+  {ok,  Emails}.
 

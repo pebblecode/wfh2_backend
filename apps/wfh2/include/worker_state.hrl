@@ -2,7 +2,7 @@
           id :: atom()
           , version = 0 :: integer()
           , working_from = office :: home | office
-          , info = '' :: string()
+          , info = '' :: binary()
           , last_updated = erlang:timestamp() :: erlang:timestamp()
          }).
 

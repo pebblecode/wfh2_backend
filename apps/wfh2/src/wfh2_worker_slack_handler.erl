@@ -29,13 +29,16 @@ handle_form_post(Req, State) ->
           error_logger:info_msg("Id for worker: ~p~n", [WorkerId]),
           case  Command of
             ?WFOO_COMMAND -> error_logger:info_msg("Setting working out of office~n"),
+                             Info = maps:get(<<"text">>, State#state.request_body, <<"">>),
+                             wfh2_worker:set_wfh(binary_to_atom(WorkerId, utf8), Info),
                              Req2 = cowboy_req:set_resp_body(
                                       <<"Ok, setting working out of office.">>, Req),
                              {true, Req2, State};
             ?WFO_COMMAND  -> error_logger:info_msg("Setting working from office~n"),
                              Req2 = cowboy_req:set_resp_body(
                                       <<"Ok, setting working from office.">>, Req),
-                             {true, Req2, State}
+                             {true, Req2, State};
+            _ -> {false, Req, State}
           end
       catch
         error:_ -> {false, Req, State} %userid not found
