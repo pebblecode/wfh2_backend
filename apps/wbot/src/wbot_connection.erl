@@ -27,7 +27,6 @@ start_link() ->
   erlang:register(?MODULE, Pid),
   {ok, Pid}.
 
-
 init([]) ->
     {reconnect, #{}}.
 
@@ -42,8 +41,7 @@ websocket_handle({pong, _}, _ConnState, State) ->
     {ok, State};
 websocket_handle({ping, _}, _ConnState, State) ->
   {reply, pong, State};
-websocket_handle({text, Msg}, _ConnState, State) ->
-    io:format("Received msg ~p~n", [Msg]),
+websocket_handle({text, _Msg}, _ConnState, State) ->
     {ok, State}.
 websocket_info(start, _ConnState, State) ->
     {reply, {text, <<"erlang message received">>}, State}.
@@ -51,5 +49,6 @@ websocket_info(start, _ConnState, State) ->
 websocket_terminate(Reason, _ConnState, State) ->
     io:format("Websocket closed in state ~p wih reason ~p~n",
               [State, Reason]),
+    erlang:unregister(?MODULE),
     ok.
 
