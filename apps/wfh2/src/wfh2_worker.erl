@@ -1,6 +1,7 @@
 -module(wfh2_worker).
 
 -include("../include/worker_state.hrl").
+-include("../include/worker_event.hrl").
 
 -behaviour(gen_server).
 
@@ -10,7 +11,8 @@
          , get_worker_state/1
          , get_worker_states/0
          , set_wfh/2
-         , set_wfo/1]).
+         , set_wfo/1
+         , set_default/2]).
 
 %% gen_server callbacks
 -export([init/1,
@@ -19,16 +21,6 @@
          handle_info/2,
          terminate/2,
          code_change/3]).
-
--type event_type() :: name_updated | location_updated.
-
--record(event, {
-          event_type :: event_type()
-          , timestamp :: erlang:timestamp()
-          , payload :: term()
-         }).
-
--type event() :: #event{}.
 
 -define(WORKERID_FILENAME_REGEX, "[^a-zA-Z_+@.]+").
 -define(WORKERS_DIRECTORY, wfh2_config:get_env(workers_directory)).
@@ -53,6 +45,7 @@ get_worker_state(WorkerId) ->
   Id = ensure_atom(WorkerId),
   gen_server:call(Id, {get_worker_state}).
 
+-spec(get_worker_states() -> [worker_state()]).
 get_worker_states() ->
   WorkerIds = wfh2_worker_sup:get_worker_ids(),
   lists:map(fun (Wid) ->
@@ -68,6 +61,8 @@ get_worker_states() ->
 %% @spec create_worker(WorkerId :: atom(), Name :: string()) -> ok | {error, Error}
 %% @end
 %%--------------------------------------------------------------------
+
+-spec(ensure_worker(WorkerId :: atom()) -> ok).
 ensure_worker(WorkerId) ->
   case wfh2_worker_sup:create_worker(WorkerId) of
     {ok, _Pid} -> ok;
@@ -101,6 +96,23 @@ set_wfo(WorkerId) ->
   gen_server:call(Id, {set_wfo}),
   ok.
 
+
+%%--------------------------------------------------------------------
+%% @doc
+%% Sets a worker's default working location
+%%
+%% @spec set_default(
+%%    WorkerId :: atom() | string(),
+%%    Location :: home | office) -> ok | {error, Error}
+%% @end
+%%--------------------------------------------------------------------
+
+-spec(set_default(WorkerId :: atom(), Location :: home | office) -> ok).
+set_default(WorkerId, Location) when Location =:= home; Location =:= office ->
+  Id = ensure_atom(WorkerId),
+  gen_server:call(Id, {set_default, Location}),
+  ok.
+
 %%--------------------------------------------------------------------
 %% @doc
 %% Starts the server
@@ -126,6 +138,7 @@ start_link(Id) ->
 %%                     {stop, Reason}
 %% @end
 %%--------------------------------------------------------------------
+
 init([Id]) ->
   Email = atom_to_list(Id),
   WorkerFilePath = get_worker_file_path(?WORKERS_DIRECTORY, Email),
@@ -151,17 +164,25 @@ init([Id]) ->
 %%--------------------------------------------------------------------
 
 handle_call({set_wfh, Info}, _From, State) ->
-  Event = #event{  event_type = location_updated
-                 , timestamp = erlang:timestamp()
-                 , payload = {home, Info}},
+  Event0 = create_event(State),
+  Event = Event0#event{ event_type = location_updated
+                        , payload = {home, Info}},
   store_and_publish_event(Event, State#worker_state.id),
   NewState = apply_event(Event, State),
   { reply, ok, NewState };
 
 handle_call({set_wfo}, _From, State) ->
-  Event = #event{ event_type = location_updated
-                , timestamp = erlang:timestamp()
-                , payload = {office}},
+  Event0 = create_event(State),
+  Event = Event0#event{ event_type = location_updated
+                        , payload = {office}},
+  store_and_publish_event(Event, State#worker_state.id),
+  NewState = apply_event(Event, State),
+  { reply, ok, NewState };
+
+handle_call({set_default, Location} , _From, State) ->
+  Event0 = create_event(State),
+  Event = Event0#event{ event_type = default_updated
+                        , payload = Location},
   store_and_publish_event(Event, State#worker_state.id),
   NewState = apply_event(Event, State),
   { reply, ok, NewState };
@@ -228,13 +249,19 @@ code_change(_OldVsn, State, _Extra) ->
 %%% Internal functions
 %%%===================================================================
 
+-spec(create_event(State :: worker_state()) -> event()).
+create_event(State) ->
+  #event { worker_id = State#worker_state.id
+         , timestamp = erlang:timestamp() }.
+
 store_and_publish_event(Event, WorkerId) ->
   WorkerFilePath = get_worker_file_path(
                      ?WORKERS_DIRECTORY
                      , atom_to_list(WorkerId)),
 
   store_event(Event, WorkerFilePath),
-  publish_event(Event).
+  publish_event(Event),
+  ok.
 
 store_event(Event, WorkerFilePath) ->
   {ok, Io} = file:open(WorkerFilePath, [append]),
@@ -270,19 +297,28 @@ apply_event(Event, State) ->
           {office}     -> State#worker_state{
                             working_from = office
                             , last_updated = Timestamp
-                            , info = ""}
-        end
+                            , info = <<"">>}
+        end;
+      #event{
+         event_type = default_updated
+         , payload = Payload } -> State#worker_state{ default = Payload }
     end,
 
   UpdatedState#worker_state{version = UpdatedState#worker_state.version + 1}.
 
-publish_event(Event) -> io:format("Publish Event: ~p~n", [Event]).
+-spec(publish_event(Event :: event()) -> ok).
+publish_event(Event) ->
+  wfh2_publisher:location_updated(Event).
 
+-spec(get_worker_file_path(
+        WorkersPath :: string(),
+        WorkerId :: string()) -> string()).
 get_worker_file_path(WorkersPath, WorkerId) ->
   WorkerFilename = get_worker_filename(WorkerId),
   Path = filename:join(WorkersPath, WorkerFilename),
   string:concat(Path, ".txt").
 
+-spec(get_worker_filename(WorkerId :: string()) -> string()).
 get_worker_filename(WorkerId) ->
   re:replace(WorkerId
              , ?WORKERID_FILENAME_REGEX

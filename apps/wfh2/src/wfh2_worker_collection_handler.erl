@@ -5,7 +5,7 @@
         , content_types_provided/2
         , resource_exists/2
         , get_json/2
-        , post_json/2]).
+        ]).
 
 init(_Proto, _Req, _Opts) ->
   {upgrade, protocol, cowboy_rest}.
@@ -41,16 +41,4 @@ get_json(Req, State) ->
 
   Body = <<"[", WorkerPresentations/binary, "]">>,
   {Body, Req, State}.
-
-post_json(Req, State) ->
-  error_logger:info_msg(
-    "collection_handler:post_json handling message"),
-  #{id := Id, name := Name} = State,
-  BinId = atom_to_binary(Id, utf8),
-  case wfh2_worker:create_worker(Id, Name) of
-    ok ->
-      {{true, <<"/workers/", BinId/binary>>}, Req, State};
-    {error, worker_exists} ->
-      {{true, <<"/workers/", BinId/binary>>}, Req, State}
-  end.
 

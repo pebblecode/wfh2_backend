@@ -24,7 +24,10 @@
 %% @end
 %%--------------------------------------------------------------------
 start_link() ->
-    supervisor:start_link({local, ?MODULE}, ?MODULE, []).
+  {ok, Pid} = supervisor:start_link({local, ?MODULE}, ?MODULE, []),
+  ok = wfh2_logging_subscriber:add_handler(),
+  {ok, Pid}.
+
 
 %%%===================================================================
 %%% Supervisor callbacks
@@ -44,8 +47,11 @@ start_link() ->
 %% @end
 %%--------------------------------------------------------------------
 init([]) ->
-    {ok, {{one_for_one, 5, 10}, [?CHILD(wfh2_worker_sup, wfh2_worker_sup, worker, [])]}}.
+    {ok, {{one_for_one, 5, 10},
+          [?CHILD(wfh2_worker_sup, wfh2_worker_sup, worker, []),
+           ?CHILD(wfh2_publisher, wfh2_publisher, worker, [])]}}.
 
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
+

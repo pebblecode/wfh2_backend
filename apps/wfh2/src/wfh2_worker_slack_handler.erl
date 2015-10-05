@@ -35,6 +35,7 @@ handle_form_post(Req, State) ->
                                       <<"Ok, setting working out of office.">>, Req),
                              {true, Req2, State};
             ?WFO_COMMAND  -> error_logger:info_msg("Setting working from office~n"),
+                             wfh2_worker:set_wfo(binary_to_atom(WorkerId, utf8)),
                              Req2 = cowboy_req:set_resp_body(
                                       <<"Ok, setting working from office.">>, Req),
                              {true, Req2, State};
