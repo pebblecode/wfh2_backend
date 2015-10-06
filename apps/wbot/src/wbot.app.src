@@ -9,8 +9,9 @@
     inets,
     crypto,
     ssl,
-    jsx,
-    websocket_client
+    sprof,
+    websocket_client,
+    jsx
    ]},
   {env,[{slackbot_token,"xoxb-11845103506-UL6jSZsjsYY2xZ9hNQV6nSCN" }]},
   {modules, []},

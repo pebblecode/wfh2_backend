@@ -37,7 +37,8 @@ get_profiles() ->
   gen_server:call(?MODULE, get_profiles).
 
 get_profiles_by_email() ->
-  gen_server:call(?MODULE, get_profiles_by_email).
+  {ok, Profiles} = gen_server:call(?MODULE, get_profiles_by_email),
+  Profiles.
 
 get_email_for(Id) ->
   {ok, Profiles} = get_profiles(),
