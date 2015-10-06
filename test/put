@@ -1,0 +1,4 @@
+#!/bin/bash
+
+echo "{\"location\": \"OutOfOffice\", \"info\": \"just not up for it\"}" | curl -T - -H "Content-Type: application/json" http://localhost:8181/workers/martin.schinz%20pebblecode.com/default -v
+

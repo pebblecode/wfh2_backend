@@ -11,7 +11,10 @@
         , get_json/2
         , put_json/2]).
 
--record(rest_state, {worker_id :: atom()}).
+-type(location () :: in_office | out_of_office).
+
+-record(rest_state, {worker_id :: atom(), action :: binary(), location ::
+                     location(), info:: binary() | undefined}).
 
 init(_Proto, _Req, _Opts) ->
   {upgrade, protocol, cowboy_rest}.
@@ -37,60 +40,55 @@ get_json(Req, State) ->
   error_logger:info_msg("JSON: ~p~n", [Body]),
   {Body, Req, State}.
 
+get_post_request_data(Req) ->
+  {Action, Req2} = cowboy_req:binding(action, Req),
+  {WorkerId, Req3} = cowboy_req:binding(worker_id, Req2),
+  {ok, BodyRaw, Req4} = cowboy_req:body(Req3),
+  Body = jsx:decode(BodyRaw, [return_maps, {labels, atom}]),
+  {{Action, WorkerId}, Body, Req4}.
+
 resource_exists(Req, State) ->
   {WorkerIdBinding, Req2} = cowboy_req:binding(worker_id, Req),
   error_logger:info_msg("Binding: ~p", [WorkerIdBinding]),
-
   case WorkerIdBinding of
-
     undefined -> {false, Req2, State};
-
     _         -> WorkerId = erlang:binary_to_atom(WorkerIdBinding, utf8),
                  Exists = wfh2_worker_sup:worker_exists(WorkerId),
                  {Exists, Req2, State#rest_state{worker_id = WorkerId}}
   end.
 
 put_json(Req, State) ->
-
-  case State#rest_state.worker_id of
-    undefined -> false;
-    Id ->
-      {ActionBinding, Req2} = cowboy_req:binding(action, Req),
-
-      case ActionBinding of
-
-        <<"location">> ->
-          {ok, BodyRaw, Req3} = cowboy_req:body(Req2),
-
-          try jsx:decode(BodyRaw, [return_maps, {labels, atom}]) of
-            BodyDes ->
-              Location = maps:get(location, BodyDes),
-              error_logger:info_msg("Location: ~p~n", [Location]),
-              Body = case Location of
-                       <<"InOffice">>     -> wfh2_worker:set_wfo(Id),
-                                             jsx:encode(#{ok => <<"in the office">>});
-                       <<"OutOfOffice">>  -> Info = binary_to_list(maps:get(details, BodyDes, <<"">>)),
-                                             wfh2_worker:set_wfh(Id, Info),
-                                             jsx:encode(#{ok => <<"home">>})
-                     end,
-              Req4 = cowboy_req:set_resp_body(Body, Req3),
-              {true, Req4, State}
-          catch
-            error:badarg              -> Body =
-                                        jsx:encode
-                                        (#{error => <<"request body could not be read">>}),
-                                        Req4 = cowboy_req:set_resp_body(Body, Req3),
-                                        {false, Req4, State};
-            error:{badkey, location } -> Body =
-                                         jsx:encode
-                                         (#{error => <<"location field missing">>}),
-                                         Req4 = cowboy_req:set_resp_body(Body, Req3),
-                                         {false, Req4, State}
+  try get_post_request_data(Req) of
+    {{ActionBinding, WorkerIdBinding},Body , Req2} ->
+      case {ActionBinding, #{location := Location} = Body} of
+        {<<"location">>, _} ->
+          WorkerId = binary_to_atom(WorkerIdBinding, utf8),
+          case Location of
+            <<"InOffice">> -> wfh2_worker:set_wfo(WorkerId),
+                              {true, Req2, State};
+            <<"OutOfOffice">> -> Info = maps:get(info, Body, <<"">>),
+                                 wfh2_worker:set_wfh(WorkerId, Info),
+                                 {true, Req2, State};
+            _ -> Body = jsx:encode(#{<<"Error">> => <<"Unknown location">>}),
+                 Req3 = cowboy_req:set_resp_body(Body, Req2),
+                 {false, Req3, State}
           end;
-
-        _ -> Body = jsx:encode(#{ error => <<"Unsupported action">> }),
-             Req3 = cowboy_req:set_resp_body(Body, Req2),
-             { false, Req3, State }
+        {<<"default">>, _} ->
+          WorkerId = binary_to_atom(WorkerIdBinding, utf8),
+          case Location of
+            <<"InOffice">> ->
+              wfh2_worker:set_default(WorkerId, office),
+                              {true, Req2,State};
+            <<"OutOfOffice">> -> wfh2_worker:set_default(WorkerId, home),
+                                 {true, Req, State};
+            _ -> Body = jsx:encode(#{<<"Error">> => <<"Unknown location">>}),
+                 Req3 = cowboy_req:set_resp_body(Body, Req2),
+                 {false, Req3, State}
+          end
       end
+  catch
+    _:Reason ->
+      error_logger:info_msg("Malformed request: ~p~n~p~n", [Reason, erlang:get_stacktrace()]),
+      {false, Req, State}
   end.
 
