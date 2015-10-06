@@ -31,7 +31,6 @@ init([]) ->
     {reconnect, #{}}.
 
 onconnect(_WSReq, State) ->
-    %websocket_client:cast(self(), {text, <<"message 1">>}),
     {ok, State}.
 
 ondisconnect({remote, closed}, State) ->
