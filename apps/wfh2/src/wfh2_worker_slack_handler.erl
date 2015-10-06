@@ -36,12 +36,12 @@ handle_form_post(Req, State) ->
                              Info = maps:get(<<"text">>, State#state.request_body, <<"">>),
                              wfh2_worker:set_wfh(binary_to_atom(WorkerId, utf8), Info),
                              Req2 = cowboy_req:set_resp_body(
-                                      <<"Ok, setting working out of office.">>, Req),
+                                      <<"OK, setting working out of office.">>, Req),
                              {true, Req2, State};
             ?WFO_COMMAND  -> error_logger:info_msg("Setting working from office~n"),
                              wfh2_worker:set_wfo(binary_to_atom(WorkerId, utf8)),
                              Req2 = cowboy_req:set_resp_body(
-                                      <<"Ok, setting working from office.">>, Req),
+                                      <<"OK, setting working from office.">>, Req),
                              {true, Req2, State};
             _ -> {false, Req, State}
           end

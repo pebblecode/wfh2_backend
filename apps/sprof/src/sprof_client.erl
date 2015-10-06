@@ -32,8 +32,7 @@ make_request() ->
 read_body(Body) ->
   AllMembers =
   maps:get(members, jsx:decode(Body, [return_maps, {labels, atom}])),
-  ActiveMembers = lists:filter(fun should_manage/1, AllMembers),
-  maps:from_list([{maps:get(id, X), X} || X <- ActiveMembers]).
+  lists:filter(fun should_manage/1, AllMembers).
 
 should_manage(User) ->
   case User of

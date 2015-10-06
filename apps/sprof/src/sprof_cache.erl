@@ -5,6 +5,7 @@
 %% API functions
 -export([start_link/1
         , get_profiles/0
+        , get_profiles_by_email/0
         , get_email_for/1
         , get_emails/0]).
 
@@ -16,7 +17,7 @@
          terminate/2,
          code_change/3]).
 
--record(state, {profiles = #{}, poll_interval = 60000}).
+-record(state, {lookup_profile_by_slack_id = #{}, lookup_profile_by_email = #{}, poll_interval = 60000}).
 
 %%%===================================================================
 %%% API functions
@@ -34,6 +35,9 @@ start_link(PollInterval) ->
 
 get_profiles() ->
   gen_server:call(?MODULE, get_profiles).
+
+get_profiles_by_email() ->
+  gen_server:call(?MODULE, get_profiles_by_email).
 
 get_email_for(Id) ->
   {ok, Profiles} = get_profiles(),
@@ -84,7 +88,10 @@ init([PollInterval]) ->
 %% @end
 %%--------------------------------------------------------------------
 handle_call(get_profiles, _From, State) ->
-  {reply, {ok, State#state.profiles}, State};
+  {reply, {ok, State#state.lookup_profile_by_slack_id}, State};
+
+handle_call(get_profiles_by_email, _From, State) ->
+  {reply, {ok, State#state.lookup_profile_by_email}, State};
 
 handle_call(_Request, _From, State) ->
     Reply = ok,
@@ -116,10 +123,15 @@ handle_cast(_Msg, State) ->
 handle_info(trigger, State) ->
   error_logger:info_msg("triggered, loading profiles~n"),
   {ok, Profiles} = sprof_client:load_profiles(),
+  LookupProfileBySlackId =
+    maps:from_list([{maps:get(id, X), X} || X <- Profiles]),
+
+  LookupProfileByEmail =
+    maps:from_list([{maps:get(email, maps:get(profile, X)), X} || X <- Profiles]),
   error_logger:info_msg("profiles refreshed~n"),
   erlang:send_after(State#state.poll_interval, self(), trigger),
-  {noreply, State#state{profiles = Profiles}};
-
+  {noreply, State#state{lookup_profile_by_slack_id = LookupProfileBySlackId
+                       , lookup_profile_by_email = LookupProfileByEmail}};
 
 handle_info(_Info, State) ->
     {noreply, State}.
