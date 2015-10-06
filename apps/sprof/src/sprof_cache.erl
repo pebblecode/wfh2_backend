@@ -126,8 +126,13 @@ handle_info(trigger, State) ->
   LookupProfileBySlackId =
     maps:from_list([{maps:get(id, X), X} || X <- Profiles]),
 
+  GetEmail = fun(X) ->
+                 #{profile := #{ email := Email }} = X,
+                 Email
+             end,
+
   LookupProfileByEmail =
-    maps:from_list([{maps:get(email, maps:get(profile, X)), X} || X <- Profiles]),
+    maps:from_list([{GetEmail(X), X} || X <- Profiles]),
   error_logger:info_msg("profiles refreshed~n"),
   erlang:send_after(State#state.poll_interval, self(), trigger),
   {noreply, State#state{lookup_profile_by_slack_id = LookupProfileBySlackId
