@@ -28,7 +28,6 @@
 
 get_worker_ids() ->
   WorkerIds = lists:map(fun (Child) -> {Id, _, _, _} = Child, Id end, supervisor:which_children(?MODULE)),
-  error_logger:info_msg("WorkerIds: ~p~n", [WorkerIds]),
   WorkerIds.
 
 worker_exists(WorkerId) ->

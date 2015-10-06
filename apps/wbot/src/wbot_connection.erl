@@ -75,7 +75,7 @@ websocket_handle({pong, _}, _ConnState, State) ->
 websocket_handle({ping, _}, _ConnState, State) ->
   {reply, pong, State};
 websocket_handle({text, Msg}, _ConnState, State) ->
-  io:fwrite("Chat Message: ~p~n", [Msg]),
+  %io:fwrite("Chat Message: ~p~n", [Msg]),
   {ok, State}.
 
 websocket_info({send_im, Email, Message}, _ConnState, State) when
