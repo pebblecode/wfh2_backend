@@ -107,8 +107,8 @@ set_wfo(WorkerId) ->
 %% @end
 %%--------------------------------------------------------------------
 
--spec(set_default(WorkerId :: atom(), Location :: home | office) -> ok).
-set_default(WorkerId, Location) when Location =:= home; Location =:= office ->
+-spec(set_default(WorkerId :: atom(), Location :: {out_of_office, binary()} | office) -> ok).
+set_default(WorkerId, Location) ->
   Id = ensure_atom(WorkerId),
   gen_server:call(Id, {set_default, Location}),
   ok.
@@ -121,7 +121,7 @@ set_default(WorkerId, Location) when Location =:= home; Location =:= office ->
 %% @end
 %%--------------------------------------------------------------------
 start_link(Id) ->
-    gen_server:start_link({local, Id}, ?MODULE, [Id], []).
+  gen_server:start_link({local, Id}, ?MODULE, [Id], []).
 
 %%%===================================================================
 %%% gen_server callbacks

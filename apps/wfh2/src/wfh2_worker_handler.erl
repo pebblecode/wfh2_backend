@@ -79,7 +79,9 @@ put_json(Req, State) ->
             <<"InOffice">> ->
               wfh2_worker:set_default(WorkerId, office),
                               {true, Req2,State};
-            <<"OutOfOffice">> -> wfh2_worker:set_default(WorkerId, home),
+            <<"OutOfOffice">> -> Info = maps:get(info, Body, <<"">>),
+                                 wfh2_worker:set_default(WorkerId,
+                                                         {out_of_office, Info}),
                                  {true, Req, State};
             _ -> Body = jsx:encode(#{<<"Error">> => <<"Unknown location">>}),
                  Req3 = cowboy_req:set_resp_body(Body, Req2),
