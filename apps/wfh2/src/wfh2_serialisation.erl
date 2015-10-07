@@ -13,9 +13,13 @@ encode_status({WorkerState, #{profile := Profile}}) ->
                                     {<<"OutOfOffice">>,Info};
                                   _ -> {<<"InOffice">>, <<"">> }
                                 end,
-  Name = maps:get(real_name, Profile, atom_to_binary(WorkerId, utf8)),
+  Email = atom_to_binary(WorkerId, utf8),
+  Name = case maps:get(real_name, Profile, Email) of
+           <<"">> -> Email;
+           Other -> Other
+         end,
   jsx:encode(#{
-    <<"email">> => atom_to_binary(WorkerId, utf8),
+    <<"email">> => Email,
     <<"name">> => Name,
     <<"status">> => #{
         <<"statusType">> => StatusType,
