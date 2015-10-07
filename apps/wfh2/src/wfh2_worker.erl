@@ -1,5 +1,8 @@
 -module(wfh2_worker).
 
+-type location() :: {out_of_office, Info :: binary()} | office.
+-export_type([location/0]).
+
 -include("../include/worker_state.hrl").
 -include("../include/worker_event.hrl").
 
@@ -24,6 +27,7 @@
 
 -define(WORKERID_FILENAME_REGEX, "[^a-zA-Z_+@.]+").
 -define(WORKERS_DIRECTORY, wfh2_config:get_env(workers_directory)).
+-define(NEVER, datetime_to_timestamp({{2000,01,01}, {00,00,01}})).
 
 %%%===================================================================
 %%% API functions
@@ -103,11 +107,11 @@ set_wfo(WorkerId) ->
 %%
 %% @spec set_default(
 %%    WorkerId :: atom() | string(),
-%%    Location :: {out_of_office, binary()} | office) -> ok | {error, Error}
+%%    Location :: wfh2_worker:location() -> ok | {error, Error}
 %% @end
 %%--------------------------------------------------------------------
 
--spec(set_default(WorkerId :: atom(), Location :: {out_of_office, binary()} | office) -> ok).
+-spec(set_default(WorkerId :: atom(), Location :: wfh2_worker:location()) -> ok).
 set_default(WorkerId, Location) ->
   Id = ensure_atom(WorkerId),
   gen_server:call(Id, {set_default, Location}),
@@ -145,7 +149,7 @@ init([Id]) ->
   case replay(WorkerFilePath, #worker_state{}) of
     {ok, State} ->
       {ok, State#worker_state{id = Id}};
-    _ -> {ok, #worker_state{ id = Id}}
+    _ -> {ok, #worker_state{id = Id, last_updated = ?NEVER}}
   end.
 
 %%--------------------------------------------------------------------
@@ -291,15 +295,16 @@ apply_event(Event, State) ->
 
         case Payload of
           {out_of_office, Info} -> State#worker_state{
-                            working_from = {out_of_office, Info}
-                            , last_updated = Timestamp };
-          {office}     -> State#worker_state{
-                            working_from = office
-                            , last_updated = Timestamp }
+                                     working_from = {out_of_office, Info}
+                                     , last_updated = Timestamp};
+          {office}              -> State#worker_state{
+                                     working_from = office
+                                     , last_updated = Timestamp}
         end;
       #event{
          event_type = default_updated
-         , payload = Payload } -> State#worker_state{ default = Payload }
+         , payload = Payload }  -> State#worker_state{
+                                     default = Payload}
     end,
 
   UpdatedState#worker_state{version = UpdatedState#worker_state.version + 1}.
@@ -328,3 +333,8 @@ ensure_atom(ListOrAtom) ->
           true -> ListOrAtom
   end.
 
+%% see http://stackoverflow.com/a/12531512/672760
+datetime_to_timestamp(DateTime) ->
+  Seconds = calendar:datetime_to_gregorian_seconds(DateTime) - 62167219200,
+  %% 62167219200 == calendar:datetime_to_gregorian_seconds({{1970, 1, 1}, {0, 0, 0}})
+  {Seconds div 1000000, Seconds rem 1000000, 0}.

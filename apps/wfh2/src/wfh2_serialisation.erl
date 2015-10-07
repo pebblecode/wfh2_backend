@@ -1,28 +1,28 @@
 -module(wfh2_serialisation).
 
--include("../include/worker_state.hrl").
+-include("../include/worker_status.hrl").
 
 -export([encode_status/1]).
 
--spec(encode_status(WorkerState :: worker_state()) -> binary() ).
+-spec(encode_status(WorkerStatus :: worker_status()) -> binary()).
 
-encode_status({WorkerState, #{profile := Profile}}) ->
-  #worker_state{id = WorkerId, working_from = WorkingFrom } = WorkerState,
-  {StatusType, StatusDetails} = case WorkingFrom of
-                                  {out_of_office, Info} ->
-                                    {<<"OutOfOffice">>,Info};
-                                  _ -> {<<"InOffice">>, <<"">> }
-                                end,
-  Email = atom_to_binary(WorkerId, utf8),
-  Name = case maps:get(real_name, Profile, Email) of
-           <<"">> -> Email;
-           Other -> Other
-         end,
+encode_status(#worker_status{email = Email, working_from = WorkingFrom, name = Name}) ->
+  {StatusType, StatusDetails} =
+  case WorkingFrom of
+    {_, office } -> {<<"InOffice">>, <<"">>};
+    {_, {out_of_office, Info}} -> {<<"OutOfOffice">>, Info}
+  end,
+  IsDefault = case WorkingFrom of
+                {default, _} -> true;
+                _ -> false
+              end,
+
   jsx:encode(#{
     <<"email">> => Email,
     <<"name">> => Name,
     <<"status">> => #{
         <<"statusType">> => StatusType,
-        <<"statusDetails">> => StatusDetails
+        <<"statusDetails">> => StatusDetails,
+        <<"isDefault">> => IsDefault
        }}).
 
