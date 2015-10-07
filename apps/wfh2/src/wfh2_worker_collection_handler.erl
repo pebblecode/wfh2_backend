@@ -17,7 +17,9 @@ allowed_methods(Req, State) ->
 content_types_provided(Req, State) ->
   case cowboy_req:method(Req) of
     {<<"GET">>, Req2} ->
-      {[{{<<"application">>, <<"json">>, []}, get_json}], Req2, State};
+      Req3 = cowboy_req:set_resp_header(<<"access-control-allow-methods">>, <<"GET, OPTIONS">>, Req2),
+      Req4 = cowboy_req:set_resp_header(<<"access-control-allow-origin">>, <<"*">>, Req3),
+      {[{{<<"application">>, <<"json">>, []}, get_json}], Req4, State};
     {<<"OPTIONS">>, Req2} ->
       {[{{<<"application">>, <<"json">>, []}, options}], Req2, State}
   end.
