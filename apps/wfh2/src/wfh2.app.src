@@ -1,6 +1,6 @@
 {application, 'wfh2',
- [{description, "An OTP application"},
-  {vsn, "0.1.0"},
+ [{description, "A web service for keeping track of workers locations"},
+  {vsn, "1.0.0"},
   {registered, []},
   {mod, {'wfh2_app', []}},
   {applications,

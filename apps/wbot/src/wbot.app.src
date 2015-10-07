@@ -1,6 +1,6 @@
 {application, 'wbot',
- [{description, "An OTP application"},
-  {vsn, "0.1.0"},
+ [{description, "Work from home bot for slack"},
+  {vsn, "1.0.0"},
   {registered, []},
   {mod, {'wbot_app', []}},
   {applications,
@@ -13,7 +13,7 @@
     websocket_client,
     jsx
    ]},
-  {env,[{slackbot_token,"xoxb-11845103506-UL6jSZsjsYY2xZ9hNQV6nSCN" }]},
+  {env,[{slackbot_token,"secret" }]},
   {modules, []},
 
   {contributors, []},
