@@ -35,7 +35,8 @@ content_types_provided(Req, State) ->
 get_json(Req, State) ->
   WorkerId = State#rest_state.worker_id,
   {ok, WorkerState} = wfh2_worker:get_worker_state(WorkerId),
-  Body = wfh2_serialisation:encode_status(WorkerState),
+  WorkerProfile = sprof_cache:get_profile_for(WorkerId),
+  Body = wfh2_serialisation:encode_status({WorkerState, WorkerProfile}),
   {Body, Req, State}.
 
 get_post_request_data(Req) ->

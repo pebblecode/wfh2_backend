@@ -7,6 +7,7 @@
         , get_profiles/0
         , get_profiles_by_email/0
         , get_email_for/1
+        , get_profile_for/1
         , get_emails/0]).
 
 %% gen_server callbacks
@@ -48,6 +49,14 @@ get_email_for(Id) ->
 get_email_for(Id, Profiles) ->
   #{ profile := #{email := Email } } = maps:get(Id, Profiles),
   Email.
+
+get_profile_for(Email) when is_atom(Email) ->
+  Profiles = ?MODULE:get_profiles_by_email(),
+  maps:get(atom_to_binary(Email, utf8), Profiles);
+get_profile_for(Email) when is_binary(Email) ->
+  Profiles = ?MODULE:get_profiles_by_email(),
+  maps:get(Email, Profiles).
+  
 
 get_emails() ->
   {ok, Profiles} = get_profiles(),
