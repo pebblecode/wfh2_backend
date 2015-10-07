@@ -3,11 +3,20 @@
 -include("../include/worker_state.hrl").
 
 -export([get/0
-        , working_from/2]).
+        , working_from/2
+        , transform_worker_state/2]).
 
 get() ->
   AllWorkerStates = wfh2_worker:get_worker_states(),
   AllWorkerStates.
+
+-spec(transform_worker_state(WorkerState :: worker_state(), CurrentTimestamp ::
+                            erlang:datetime()) -> term()).
+transform_worker_state(WorkerState, CurrentTimestamp) ->
+  LastUpdatedOrDefault = working_from(WorkerState,
+                                      calendar:now_to_datetime(CurrentTimestamp)),
+  #{email => atom_to_binary(WorkerState#worker_state.id, utf8)
+   , working_from => LastUpdatedOrDefault }.
 
 normalised_date({{Year, Month, Day}, {Hour, _, _}}, CutOffHour)
   when Hour > CutOffHour ->

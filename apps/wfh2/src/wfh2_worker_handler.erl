@@ -35,9 +35,7 @@ content_types_provided(Req, State) ->
 get_json(Req, State) ->
   WorkerId = State#rest_state.worker_id,
   {ok, WorkerState} = wfh2_worker:get_worker_state(WorkerId),
-  error_logger:info_msg("WorkerState: ~p~n", [WorkerState]),
   Body = wfh2_serialisation:encode_status(WorkerState),
-  error_logger:info_msg("JSON: ~p~n", [Body]),
   {Body, Req, State}.
 
 get_post_request_data(Req) ->
@@ -69,8 +67,8 @@ put_json(Req, State) ->
             <<"OutOfOffice">> -> Info = maps:get(info, Body, <<"">>),
                                  wfh2_worker:set_wfh(WorkerId, Info),
                                  {true, Req2, State};
-            _ -> Body = jsx:encode(#{<<"Error">> => <<"Unknown location">>}),
-                 Req3 = cowboy_req:set_resp_body(Body, Req2),
+            _ -> Response = jsx:encode(#{<<"Error">> => <<"Unknown location">>}),
+                 Req3 = cowboy_req:set_resp_body(Response, Req2),
                  {false, Req3, State}
           end;
         {<<"default">>, _} ->
@@ -83,8 +81,8 @@ put_json(Req, State) ->
                                  wfh2_worker:set_default(WorkerId,
                                                          {out_of_office, Info}),
                                  {true, Req, State};
-            _ -> Body = jsx:encode(#{<<"Error">> => <<"Unknown location">>}),
-                 Req3 = cowboy_req:set_resp_body(Body, Req2),
+            _ -> Response = jsx:encode(#{<<"Error">> => <<"Unknown location">>}),
+                 Req3 = cowboy_req:set_resp_body(Response, Req2),
                  {false, Req3, State}
           end
       end

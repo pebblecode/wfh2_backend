@@ -103,7 +103,7 @@ set_wfo(WorkerId) ->
 %%
 %% @spec set_default(
 %%    WorkerId :: atom() | string(),
-%%    Location :: home | office) -> ok | {error, Error}
+%%    Location :: {out_of_office, binary()} | office) -> ok | {error, Error}
 %% @end
 %%--------------------------------------------------------------------
 
@@ -166,7 +166,7 @@ init([Id]) ->
 handle_call({set_wfh, Info}, _From, State) ->
   Event0 = create_event(State),
   Event = Event0#event{ event_type = location_updated
-                        , payload = {home, Info}},
+                        , payload = {out_of_office, Info}},
   store_and_publish_event(Event, State#worker_state.id),
   NewState = apply_event(Event, State),
   { reply, ok, NewState };
@@ -290,14 +290,12 @@ apply_event(Event, State) ->
          , payload = Payload} ->
 
         case Payload of
-          {home, Info} -> State#worker_state{
-                            working_from = home
-                            , last_updated = Timestamp
-                            , info = Info};
+          {out_of_office, Info} -> State#worker_state{
+                            working_from = {out_of_office, Info}
+                            , last_updated = Timestamp };
           {office}     -> State#worker_state{
                             working_from = office
-                            , last_updated = Timestamp
-                            , info = <<"">>}
+                            , last_updated = Timestamp }
         end;
       #event{
          event_type = default_updated
