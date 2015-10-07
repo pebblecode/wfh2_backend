@@ -11,8 +11,8 @@
 
 -record(state, {request_body, auth_token}).
 
--define(WFOO_COMMAND, <<"/hh">>).
--define(WFO_COMMAND, <<"/ho">>).
+-define(WFOO_COMMAND, <<"/wfh">>).
+-define(WFO_COMMAND, <<"/wfo">>).
 
 init(_Proto, Req, Opts) ->
   {upgrade, protocol, cowboy_rest, Req, Opts}.
