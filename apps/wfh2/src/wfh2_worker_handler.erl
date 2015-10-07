@@ -8,6 +8,7 @@
         , content_types_provided/2
         , allowed_methods/2
         , resource_exists/2
+        , options/2
         , get_json/2
         , put_json/2]).
 
@@ -23,14 +24,24 @@ rest_init(Req, _State) ->
   {ok, Req, #rest_state{}}.
 
 allowed_methods(Req, State) ->
-  {[<<"GET">>, <<"PUT">>, <<"POST">>], Req, State}.
+  {[<<"OPTIONS">>, <<"GET">>, <<"PUT">>, <<"POST">>], Req, State}.
 
 content_types_accepted(Req, State) ->
   {[{{<<"application">>, <<"json">>, []}, put_json}],
    Req, State}.
 
 content_types_provided(Req, State) ->
-  {[{{<<"application">>, <<"json">>, []}, get_json}], Req, State}.
+  case cowboy_req:method(Req) of
+    {<<"GET">>, Req2} ->
+      {[{{<<"application">>, <<"json">>, []}, get_json}], Req2, State};
+    {<<"OPTIONS">>, Req2} ->
+      {[{{<<"application">>, <<"json">>, []}, options}], Req2, State}
+  end.
+
+options(Req,State) ->
+  Req1 = cowboy_req:set_resp_header(<<"access-control-allow-methods">>, <<"GET, OPTIONS">>, Req),
+  Req2 = cowboy_req:set_resp_header(<<"access-control-allow-origin">>, <<"*">>, Req1),
+  {ok, Req2, State}.
 
 get_json(Req, State) ->
   WorkerId = State#rest_state.worker_id,
