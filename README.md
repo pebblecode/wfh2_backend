@@ -1,3 +1,4 @@
+[![Stories in Ready](https://badge.waffle.io/pebblecode/wfh2_backend.png?label=ready&title=Ready)](https://waffle.io/pebblecode/wfh2_backend)
 [![Build Status](https://travis-ci.org/pebblecode/wfh2_backend.svg?branch=master)](https://travis-ci.org/pebblecode/wfh2_backend)
 
 # wfh2
