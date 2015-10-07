@@ -5,16 +5,27 @@
         , content_types_provided/2
         , resource_exists/2
         , get_json/2
+        , options/2
         ]).
 
 init(_Proto, _Req, _Opts) ->
   {upgrade, protocol, cowboy_rest}.
 
 allowed_methods(Req, State) ->
-  {[<<"GET">>], Req, State}.
+  {[<<"GET">>, <<"OPTIONS">>], Req, State}.
 
 content_types_provided(Req, State) ->
-  {[{{<<"application">>, <<"json">>, []}, get_json}], Req, State}.
+  case cowboy_req:method(Req) of
+    {<<"GET">>, Req2} ->
+      {[{{<<"application">>, <<"json">>, []}, get_json}], Req2, State};
+    {<<"OPTIONS">>, Req2} ->
+      {[{{<<"application">>, <<"json">>, []}, options}], Req2, State}
+  end.
+
+options(Req, State) ->
+  Req1 = cowboy_req:set_resp_header(<<"access-control-allow-methods">>, <<"GET, OPTIONS">>, Req),
+  Req2 = cowboy_req:set_resp_header(<<"access-control-allow-origin">>, <<"*">>, Req1),
+  {ok, Req2, State}.
 
 resource_exists(Req, State) ->
   {true, Req, State}.
