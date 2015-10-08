@@ -1,6 +1,6 @@
 {application, 'wfh2',
  [{description, "A web service for keeping track of workers locations"},
-  {vsn, "1.0.3"},
+  {vsn, "1.1.0"},
   {registered, []},
   {mod, {'wfh2_app', []}},
   {applications,
