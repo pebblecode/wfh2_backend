@@ -17,9 +17,8 @@ allowed_methods(Req, State) ->
 content_types_provided(Req, State) ->
   case cowboy_req:method(Req) of
     {<<"GET">>, Req2} ->
-      Req3 = cowboy_req:set_resp_header(<<"access-control-allow-methods">>, <<"GET, OPTIONS">>, Req2),
-      Req4 = cowboy_req:set_resp_header(<<"access-control-allow-origin">>, <<"*">>, Req3),
-      {[{{<<"application">>, <<"json">>, []}, get_json}], Req4, State};
+      {ok, Req3, State2} = options(Req2, State),
+      {[{{<<"application">>, <<"json">>, []}, get_json}], Req3, State2};
     {<<"OPTIONS">>, Req2} ->
       {[{{<<"application">>, <<"json">>, []}, options}], Req2, State}
   end.
@@ -32,27 +31,9 @@ options(Req, State) ->
 resource_exists(Req, State) ->
   {true, Req, State}.
 
-get_profile_and_state(WorkerId, GetWorkerState, GetWorkerProfile) ->
-  State = GetWorkerState(WorkerId),
-  Profile = GetWorkerProfile(WorkerId),
-  {State, Profile}.
-
-get_worker_infos(WorkerIds, GetWorkerState, GetWorkerProfile) ->
-  lists:map(fun (Wid) ->
-                get_profile_and_state(
-                  Wid, GetWorkerState, GetWorkerProfile) end, WorkerIds).
-
-get_worker_state(WorkerId) ->
-  {ok, State} = wfh2_worker:get_worker_state(WorkerId),
-  State.
-
-get_worker_profile(WorkerId) ->
-  sprof_cache:get_profile_for(WorkerId).
-
 get_json(Req, State) ->
-  WorkerIds = wfh2_worker_sup:get_worker_ids(),
-  WorkerInfos = get_worker_infos(WorkerIds, fun get_worker_state/1, fun get_worker_profile/1),
-
+  Now = calendar:now_to_datetime(erlang:timestamp()),
+  WorkerStatuses = wfh2_todays_status:get_worker_statuses(Now),
   WorkerPresentations =
   lists:foldl(fun (Ele, Acc) ->
                   EncEle = wfh2_serialisation:encode_status(Ele),
@@ -62,7 +43,7 @@ get_json(Req, State) ->
                     _ ->
                       <<Acc/binary, $,, EncEle/binary>>
                   end
-              end, <<>>, WorkerInfos),
+              end, <<>>, WorkerStatuses),
 
   Body = <<"[", WorkerPresentations/binary, "]">>,
   {Body, Req, State}.

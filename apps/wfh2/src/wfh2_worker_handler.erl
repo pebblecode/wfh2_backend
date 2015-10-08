@@ -12,10 +12,8 @@
         , get_json/2
         , put_json/2]).
 
--type(location () :: in_office | out_of_office).
-
 -record(rest_state, {worker_id :: atom(), action :: binary(), location ::
-                     location(), info:: binary() | undefined}).
+                     wfh2_worker:location(), info:: binary() | undefined}).
 
 init(_Proto, _Req, _Opts) ->
   {upgrade, protocol, cowboy_rest}.
@@ -47,9 +45,9 @@ options(Req,State) ->
 
 get_json(Req, State) ->
   WorkerId = State#rest_state.worker_id,
-  {ok, WorkerState} = wfh2_worker:get_worker_state(WorkerId),
-  WorkerProfile = sprof_cache:get_profile_for(WorkerId),
-  Body = wfh2_serialisation:encode_status({WorkerState, WorkerProfile}),
+  Now = calendar:now_to_datetime(erlang:timestamp()),
+  WorkerStatus = wfh2_todays_status:get_worker_status(WorkerId, Now),
+  Body = wfh2_serialisation:encode_status(WorkerStatus),
   {Body, Req, State}.
 
 get_post_request_data(Req) ->

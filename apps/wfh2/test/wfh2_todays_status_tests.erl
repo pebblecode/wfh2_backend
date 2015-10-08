@@ -13,9 +13,10 @@ yesterday(Date) ->
 same_time_test() ->
   Now = erlang:timestamp(),
   CurrentDateTime = calendar:now_to_datetime(Now),
-  State = #worker_state{last_updated = Now, working_from = home, info = <<"def
-                                                                    home">>,
-                        default = office},
+  State = #worker_state{
+             last_updated = Now,
+             working_from = {out_of_office, <<"def home">>},
+             default = office},
   {DefaultOrTodays, _} = wfh2_todays_status:working_from(State, CurrentDateTime),
   ?assertEqual(DefaultOrTodays, todays_update).
 
@@ -26,7 +27,8 @@ updated_at_19_asking_next_day_at_9_should_return_default_test() ->
   YesterdayAt19 = {Yesterday, {19,0,0}},
   TodayAt9 = {Today, {9,0,0}},
   State = #worker_state{last_updated = convert_to_timestamp(YesterdayAt19),
-                        working_from = home, default = office},
+                        working_from = {out_of_office, <<"">>},
+                        default = office},
   {DefaultOrTodays, _} = wfh2_todays_status:working_from(State, TodayAt9),
   ?assertEqual(DefaultOrTodays, default).
 
